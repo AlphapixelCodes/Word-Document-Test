@@ -1,9 +1,9 @@
 ﻿
 
+using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
-
-
+using System.Text.RegularExpressions;
 
 void MultiReplacement(string template, Dictionary<string, string> replacements, string newFilePath)
 {
@@ -34,50 +34,54 @@ void MultiReplacement(string template, Dictionary<string, string> replacements, 
                         var start = text.Text.Substring(0, index);
                         
                         var end = text.Text.Substring(start.Length + entry.Key.Length, text.Text.Length - (index + entry.Key.Length));
-                     /*   Console.WriteLine("Start:" + start);
-                        Console.WriteLine("Keyword:" + entry.Key);
-                        Console.WriteLine("End: " + end);
-                       */ 
-                        
-                        var lines = entry.Value.Split("\n");
-                        //text.Text = start + ); 
 
-                        Paragraph lastParagraph = (Paragraph)text.Parent.Parent;
+                        var lines = Regex.Split(entry.Value, "[\n\r]{1,}");
+
                         
-                        ParagraphProperties paragraphProperties = lastParagraph.ParagraphProperties;
-                        //Run runPoroperties = ((Run)text.Parent).RunProperties;
+                        Paragraph firstParagraph = (Paragraph)text.Parent.Parent;
+                        var paraProperties = firstParagraph.ParagraphProperties; // Get the paragraph properties
+
                         text.Text = start + lines[0];
+
+                        Paragraph lastParagraph = firstParagraph;
+
                         for (int i = 1; i < lines.Length; i++)
                         {
+                            // Create a new paragraph
                             Paragraph p = new Paragraph();
-                            p.ParagraphProperties= (ParagraphProperties)paragraphProperties.CloneNode(true);
-                            var r = new Run();
-                            p.AddChild(r);
-                            var t=(lines.Length==i+1)? lines[i]+end:lines[i];
-                            Console.WriteLine(t);
-                            r.AddChild(new Text(t));
-                            lastParagraph.Parent.InsertAfter(p, lastParagraph);
-                            lastParagraph = p;
 
+                            // Clone and set the paragraph properties
+                            if (paraProperties != null)
+                            {
+                                p.ParagraphProperties = (ParagraphProperties)paraProperties.CloneNode(true);
+                            }
+
+                            // Clone and set the run properties
+                            Run run = new Run();
+                            RunProperties runProperties = ((Run)text.Parent).RunProperties;
+
+                            if (runProperties != null)
+                            {
+                                run.RunProperties = (RunProperties)runProperties.CloneNode(true);
+                            }
+
+                            // Add text to the run
+                            var t = (lines.Length == i + 1) ? lines[i] + end : lines[i];
+                            run.AppendChild(new Text(t));
+
+                            // Add the run to the paragraph
+                            p.AppendChild(run);
+
+                            // Insert the new paragraph after the lastParagraph
+                            lastParagraph.InsertAfterSelf(p);
+                            lastParagraph = p;
                         }
-                            
-                        
-                       // p.ParagraphProperties = (ParagraphProperties)paragraphProperties.Clone();
-                        
-                        
+
                     }
                     else
                     {
                         text.Text = text.Text.Replace(entry.Key, entry.Value);
                     }
-                    /*Paragraph p = new Paragraph();
-                    ParagraphProperties paragraphProperties = ((Paragraph)text.Parent.Parent).ParagraphProperties;
-                    p.ParagraphProperties = (ParagraphProperties)paragraphProperties.Clone();
-                    var r = new Run();
-                    p.AddChild(r);
-                    r.AddChild(new Text("hello"));
-                    text.Parent.Parent.Parent.InsertAfter(p, text.Parent.Parent);*/
-                    //Console.WriteLine(text.Parent.Parent.Parent.GetType().Name);
                     
                 }
             }
@@ -85,8 +89,9 @@ void MultiReplacement(string template, Dictionary<string, string> replacements, 
     }
 
 }
-var filePath = @"C:\Users\Nick\Documents\GitHub\Word-Document-Test\Word Document Test\Letterhead Simple Template.docx";//path to letterhead simple template in solution
+var filePath = @"C:\Users\Nick\source\repos\Cover Letter Generator\Cover Letter Generator\Templates\OtherTemplates\Basic Template.docx";//path to letterhead simple template in solution
 var newFilePath = Path.GetDirectoryName(filePath) + "\\output.docx";
+newFilePath = @"C:\Users\Nick\Documents\GitHub\Word-Document-Test\Word Document Test\output.docx";
 //File.Copy(filePath,newFilePath,true);
 
 var replacements = new Dictionary<string, string>()
