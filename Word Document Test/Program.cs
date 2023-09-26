@@ -23,19 +23,69 @@ void MultiReplacement(string template, Dictionary<string, string> replacements, 
         texts.AddRange(mainPart.FooterParts.SelectMany(e => e.Footer.Descendants<Run>().SelectMany(e => e.Descendants<Text>())));
         foreach (var text in texts)
         {
-            Console.WriteLine(text.Text);
+            //Console.WriteLine(text.Text);
             foreach (KeyValuePair<string, string> entry in replacements)
             {
                 while (text.Text.Contains(entry.Key))
                 {
-                    text.Text = text.Text.Replace(entry.Key, entry.Value);
+                    if (entry.Value.Contains("\n"))
+                    {
+                        var index = text.Text.IndexOf(entry.Key);
+                        var start = text.Text.Substring(0, index);
+                        
+                        var end = text.Text.Substring(start.Length + entry.Key.Length, text.Text.Length - (index + entry.Key.Length));
+                     /*   Console.WriteLine("Start:" + start);
+                        Console.WriteLine("Keyword:" + entry.Key);
+                        Console.WriteLine("End: " + end);
+                       */ 
+                        
+                        var lines = entry.Value.Split("\n");
+                        //text.Text = start + ); 
+
+                        Paragraph lastParagraph = (Paragraph)text.Parent.Parent;
+                        
+                        ParagraphProperties paragraphProperties = lastParagraph.ParagraphProperties;
+                        //Run runPoroperties = ((Run)text.Parent).RunProperties;
+                        text.Text = start + lines[0];
+                        for (int i = 1; i < lines.Length; i++)
+                        {
+                            Paragraph p = new Paragraph();
+                            p.ParagraphProperties= (ParagraphProperties)paragraphProperties.CloneNode(true);
+                            var r = new Run();
+                            p.AddChild(r);
+                            var t=(lines.Length==i+1)? lines[i]+end:lines[i];
+                            Console.WriteLine(t);
+                            r.AddChild(new Text(t));
+                            lastParagraph.Parent.InsertAfter(p, lastParagraph);
+                            lastParagraph = p;
+
+                        }
+                            
+                        
+                       // p.ParagraphProperties = (ParagraphProperties)paragraphProperties.Clone();
+                        
+                        
+                    }
+                    else
+                    {
+                        text.Text = text.Text.Replace(entry.Key, entry.Value);
+                    }
+                    /*Paragraph p = new Paragraph();
+                    ParagraphProperties paragraphProperties = ((Paragraph)text.Parent.Parent).ParagraphProperties;
+                    p.ParagraphProperties = (ParagraphProperties)paragraphProperties.Clone();
+                    var r = new Run();
+                    p.AddChild(r);
+                    r.AddChild(new Text("hello"));
+                    text.Parent.Parent.Parent.InsertAfter(p, text.Parent.Parent);*/
+                    //Console.WriteLine(text.Parent.Parent.Parent.GetType().Name);
+                    
                 }
             }
         }
     }
 
 }
-var filePath = @"C:\Users\Nick\source\repos\Word Document Test\Word Document Test\Letterhead Simple Template.docx";//path to letterhead simple template in solution
+var filePath = @"C:\Users\Nick\Documents\GitHub\Word-Document-Test\Word Document Test\Letterhead Simple Template.docx";//path to letterhead simple template in solution
 var newFilePath = Path.GetDirectoryName(filePath) + "\\output.docx";
 //File.Copy(filePath,newFilePath,true);
 
